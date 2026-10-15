@@ -1,0 +1,28 @@
+# Optional Postgres for AgentGuard (SQLite is the zero-setup default).
+#
+#   docker compose up -d
+#   export DATABASE_URL=postgresql://agentguard:agentguard@localhost:5432/agentguard
+#   agentguard run
+#
+# For a hosted database (and the Vercel dashboard) use Neon or similar instead; see README.
+#
+# NOTE: spans are exported by an in-process OpenTelemetry exporter straight into
+# the database (see docs/adr/0002), so no separate OTel collector container is
+# needed. Swap in an OTLP exporter + collector if you outgrow that.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: agentguard
+      POSTGRES_PASSWORD: agentguard
+      POSTGRES_DB: agentguard
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentguard"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:

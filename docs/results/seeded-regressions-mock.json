@@ -1,0 +1,283 @@
+{
+  "backend": "mock",
+  "repeats": 3,
+  "dataset": "golden_v1@14c29d96",
+  "baseline_run": "b252dcb84663",
+  "baseline": {
+    "success_rate": 1.0,
+    "tool_correctness": 1.0,
+    "cost_per_task": 0.0005415333333333333,
+    "p95_latency_ms": 312.8155999875162
+  },
+  "thresholds": {
+    "max_success_drop": 0.05,
+    "max_tool_drop": 0.05,
+    "max_tag_drop": 0.2,
+    "max_cost_rise": 0.3,
+    "max_latency_rise": 1.0,
+    "max_error_rise": 0.05,
+    "ignore": []
+  },
+  "caught": 12,
+  "regressions": 12,
+  "false_blocks": 0,
+  "benign": 4,
+  "rows": [
+    {
+      "name": "R01_terse_prompt",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.8333333333333334,
+      "tool_correctness": 0.8333333333333334,
+      "cost_per_task": 0.0003088333333333333,
+      "p95_latency_ms": 229.502300004242,
+      "reasons": [
+        "success_rate: 1.00 -> 0.83",
+        "tool_correctness: 1.00 -> 0.83",
+        "tag:multi_step: 1.00 -> 0.00",
+        "tag:refund: 1.00 -> 0.00"
+      ],
+      "run_id": "43b1386453a4"
+    },
+    {
+      "name": "R02_verbose_prompt",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 1.0,
+      "tool_correctness": 1.0,
+      "cost_per_task": 0.0013272,
+      "p95_latency_ms": 300.1963999995496,
+      "reasons": [
+        "cost_per_task: $0.000542 -> $0.001327 (+145%)"
+      ],
+      "run_id": "78c63cd4d505"
+    },
+    {
+      "name": "R03_schema_renamed_order_id",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.3333333333333333,
+      "tool_correctness": 0.3333333333333333,
+      "cost_per_task": 0.00045106666666666666,
+      "p95_latency_ms": 217.03749999869615,
+      "reasons": [
+        "success_rate: 1.00 -> 0.33",
+        "tool_correctness: 1.00 -> 0.33",
+        "tag:multi_step: 1.00 -> 0.00",
+        "tag:not_found: 1.00 -> 0.00",
+        "tag:order_details: 1.00 -> 0.00",
+        "tag:order_status: 1.00 -> 0.00",
+        "tag:refund: 1.00 -> 0.00"
+      ],
+      "run_id": "35b426bffe8d"
+    },
+    {
+      "name": "R04_schema_dropped_calc_refund",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.8333333333333334,
+      "tool_correctness": 0.8333333333333334,
+      "cost_per_task": 0.0004278,
+      "p95_latency_ms": 281.65140000055544,
+      "reasons": [
+        "success_rate: 1.00 -> 0.83",
+        "tool_correctness: 1.00 -> 0.83",
+        "tag:multi_step: 1.00 -> 0.00",
+        "tag:refund: 1.00 -> 0.00"
+      ],
+      "run_id": "0148d0b84a60"
+    },
+    {
+      "name": "R05_cheaper_model",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.8666666666666667,
+      "tool_correctness": 0.7333333333333333,
+      "cost_per_task": 0.000134975,
+      "p95_latency_ms": 328.3135000092443,
+      "reasons": [
+        "success_rate: 1.00 -> 0.87",
+        "tool_correctness: 1.00 -> 0.73",
+        "tag:order_status: 1.00 -> 0.71",
+        "tag:return_policy: 1.00 -> 0.71"
+      ],
+      "run_id": "cc0c0777961c"
+    },
+    {
+      "name": "R06_cheaper_model_terse",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.7,
+      "tool_correctness": 0.6111111111111112,
+      "cost_per_task": 7.676111111111111e-05,
+      "p95_latency_ms": 380.49700000556186,
+      "reasons": [
+        "success_rate: 1.00 -> 0.70",
+        "tool_correctness: 1.00 -> 0.61",
+        "tag:multi_step: 1.00 -> 0.00",
+        "tag:order_status: 1.00 -> 0.71",
+        "tag:refund: 1.00 -> 0.00",
+        "tag:return_policy: 1.00 -> 0.71"
+      ],
+      "run_id": "d2ed022eb315"
+    },
+    {
+      "name": "R07_overeager_tools",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.9,
+      "tool_correctness": 0.9,
+      "cost_per_task": 0.0005914,
+      "p95_latency_ms": 316.711799998302,
+      "reasons": [
+        "success_rate: 1.00 -> 0.90",
+        "tool_correctness: 1.00 -> 0.90",
+        "tag:out_of_scope: 1.00 -> 0.00",
+        "tag:refusal: 1.00 -> 0.00"
+      ],
+      "run_id": "92b4cf8f63fe"
+    },
+    {
+      "name": "R08_no_refusal",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.9,
+      "tool_correctness": 1.0,
+      "cost_per_task": 0.00036526666666666664,
+      "p95_latency_ms": 302.5936000049114,
+      "reasons": [
+        "success_rate: 1.00 -> 0.90",
+        "tag:out_of_scope: 1.00 -> 0.00",
+        "tag:refusal: 1.00 -> 0.00"
+      ],
+      "run_id": "804e800a4e01"
+    },
+    {
+      "name": "R09_slow_model",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 1.0,
+      "tool_correctness": 1.0,
+      "cost_per_task": 0.0005415333333333333,
+      "p95_latency_ms": 667.2169000084978,
+      "reasons": [
+        "p95_latency: 313ms -> 667ms (+113%)"
+      ],
+      "run_id": "987d639d6583"
+    },
+    {
+      "name": "R10_schema_renamed_policy_arg",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.6,
+      "tool_correctness": 0.6,
+      "cost_per_task": 0.0005192333333333333,
+      "p95_latency_ms": 333.1529999850318,
+      "reasons": [
+        "success_rate: 1.00 -> 0.60",
+        "tool_correctness: 1.00 -> 0.60",
+        "tag:multi_step: 1.00 -> 0.00",
+        "tag:open_ended: 1.00 -> 0.00",
+        "tag:refund: 1.00 -> 0.00",
+        "tag:return_policy: 1.00 -> 0.00"
+      ],
+      "run_id": "7dd62bdae1a5"
+    },
+    {
+      "name": "R11_truncated_ids",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.3333333333333333,
+      "tool_correctness": 0.3333333333333333,
+      "cost_per_task": 0.00047366666666666667,
+      "p95_latency_ms": 314.84310000087135,
+      "reasons": [
+        "success_rate: 1.00 -> 0.33",
+        "tool_correctness: 1.00 -> 0.33",
+        "tag:multi_step: 1.00 -> 0.00",
+        "tag:not_found: 1.00 -> 0.00",
+        "tag:order_details: 1.00 -> 0.00",
+        "tag:order_status: 1.00 -> 0.00",
+        "tag:refund: 1.00 -> 0.00"
+      ],
+      "run_id": "506d0f09ee9e"
+    },
+    {
+      "name": "R12_cheaper_model_verbose",
+      "group": "regression",
+      "blocked": true,
+      "correct": true,
+      "success_rate": 0.8666666666666667,
+      "tool_correctness": 0.7333333333333333,
+      "cost_per_task": 0.0003313722222222222,
+      "p95_latency_ms": 774.50920001138,
+      "reasons": [
+        "success_rate: 1.00 -> 0.87",
+        "tool_correctness: 1.00 -> 0.73",
+        "tag:order_status: 1.00 -> 0.71",
+        "tag:return_policy: 1.00 -> 0.71",
+        "p95_latency: 313ms -> 775ms (+148%)"
+      ],
+      "run_id": "6fda6bed838f"
+    },
+    {
+      "name": "B01_polite_wording",
+      "group": "benign",
+      "blocked": false,
+      "correct": true,
+      "success_rate": 1.0,
+      "tool_correctness": 1.0,
+      "cost_per_task": 0.0006373,
+      "p95_latency_ms": 278.8538000022527,
+      "reasons": [],
+      "run_id": "fb47c00fb093"
+    },
+    {
+      "name": "B02_equivalent_cheaper_model",
+      "group": "benign",
+      "blocked": false,
+      "correct": true,
+      "success_rate": 1.0,
+      "tool_correctness": 1.0,
+      "cost_per_task": 0.0004332266666666667,
+      "p95_latency_ms": 453.9265999919735,
+      "reasons": [],
+      "run_id": "b7a3e522ff68"
+    },
+    {
+      "name": "B03_shorter_prompt",
+      "group": "benign",
+      "blocked": false,
+      "correct": true,
+      "success_rate": 1.0,
+      "tool_correctness": 1.0,
+      "cost_per_task": 0.0003962666666666667,
+      "p95_latency_ms": 276.10030001960695,
+      "reasons": [],
+      "run_id": "0c33ac9d9cfb"
+    },
+    {
+      "name": "B04_identical_rerun",
+      "group": "benign",
+      "blocked": false,
+      "correct": true,
+      "success_rate": 1.0,
+      "tool_correctness": 1.0,
+      "cost_per_task": 0.0005415333333333333,
+      "p95_latency_ms": 243.78889999934472,
+      "reasons": [],
+      "run_id": "0193cad94098"
+    }
+  ]
+}

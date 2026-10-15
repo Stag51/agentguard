@@ -1,0 +1,39 @@
+name: agentguard-gate
+
+# Runs the tests, evaluates the agent in this PR against the golden dataset and
+# fails the check if quality, tool correctness, cost or errors regressed versus
+# baselines/main.json.
+#
+# WHY latency is ignored here: the baseline was produced on a different machine.
+# Absolute timings do not transfer between machines, so latency is gated only when
+# baseline and candidate run on the same hardware.
+#
+# Uses the offline mock LLM so CI needs no secrets and costs nothing. To gate a
+# real model, add ANTHROPIC_API_KEY as a secret and pass `--llm claude`.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra agent --extra dev
+      - name: Unit and integration tests
+        run: uv run pytest -q
+      - name: Evaluate this version of the agent
+        id: eval
+        run: |
+          uv run agentguard run --agent base --label "ci-${GITHUB_SHA::7}" | tee eval.txt
+          echo "run_id=$(head -1 eval.txt | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Regression gate
+        run: |
+          set +e
+          uv run agentguard gate --run "${{ steps.eval.outputs.run_id }}" --baseline baselines/main.json --ignore latency | tee gate.txt
+          code=${PIPESTATUS[0]}
+          { echo '```'; cat eval.txt gate.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

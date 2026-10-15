@@ -1,0 +1,11 @@
+learning/
+tests/
+datasets/
+baselines/
+docs/
+runs/
+.venv/
+.env
+agentguard.db*
+src/demo_agent/
+.github/

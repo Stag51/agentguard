@@ -1,0 +1,26 @@
+{
+  "agent_version": "base[base/v1/v1/mock]",
+  "cost_per_task": 0.0005415333333333333,
+  "dataset_version": "golden_v1@14c29d96",
+  "error_rate": 0.0,
+  "id": "822c06aeee0d",
+  "label": "baseline",
+  "n_attempts": 90,
+  "n_cases": 30,
+  "p95_latency_ms": 307.28280000039376,
+  "repeats": 3,
+  "status": "complete",
+  "success_by_tag": {
+    "multi_step": 1.0,
+    "not_found": 1.0,
+    "open_ended": 1.0,
+    "order_details": 1.0,
+    "order_status": 1.0,
+    "out_of_scope": 1.0,
+    "refund": 1.0,
+    "refusal": 1.0,
+    "return_policy": 1.0
+  },
+  "success_rate": 1.0,
+  "tool_correctness": 1.0
+}

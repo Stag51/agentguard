@@ -1,0 +1,17 @@
+# Private study notes: never publish
+learning/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Local data
+pgdata/
+runs/
+agentguard.db
+agentguard.db-*

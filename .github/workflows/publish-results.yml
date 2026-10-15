@@ -1,0 +1,38 @@
+name: publish-results
+
+# Runs a real-model evaluation and writes the results to the hosted Postgres that the
+# Vercel dashboard reads. Manual only: it spends API quota.
+#
+# Required repository secrets:
+#   DATABASE_URL     hosted Postgres connection string (the same one Vercel uses)
+#   GEMINI_API_KEY   Google AI key
+#
+# WHY evaluation runs here and not on Vercel: serverless functions time out after
+# seconds to minutes and have no persistent disk. An evaluation is a long batch job;
+# the web only needs to read its results.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: "Repeats per case"
+        default: "3"
+      agent:
+        description: "Agent version name (see src/demo_agent/variants.py)"
+        default: "base"
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra agent
+      - name: Evaluate and publish
+        run: >
+          uv run agentguard run --llm gemini --judge gemini
+          --agent "${{ inputs.agent }}" --repeats "${{ inputs.repeats }}"
+          --concurrency 3 --label "gh-${GITHUB_RUN_NUMBER}"

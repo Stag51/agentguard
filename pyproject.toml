@@ -1,0 +1,38 @@
+[project]
+name = "agentguard"
+version = "0.1.0"
+description = "Evaluation and observability for LLM agents: trace, replay, score, gate."
+requires-python = ">=3.11"
+dependencies = [
+  # Web/read side only. This is all the Vercel function installs: keep it small
+  # (serverless bundles have a size limit and cold starts scale with it).
+  "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.1",
+  "pydantic>=2.6",
+  "fastapi>=0.110",
+]
+
+[project.optional-dependencies]
+# Everything needed to RUN evaluations (CLI, tracing, demo agent, LLM SDKs).
+agent = [
+  "opentelemetry-sdk>=1.25",
+  "langgraph>=0.2",
+  "anthropic>=0.40",
+  "google-genai>=1.0",
+  "uvicorn>=0.29",
+]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "httpx", "ruff"]
+
+[project.scripts]
+agentguard = "agentguard.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentguard", "src/demo_agent"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

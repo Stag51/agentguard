@@ -23,10 +23,12 @@ Seeded-regression experiment: 12 known-bad changes and 4 harmless ones are run t
 
 | Metric | Result |
 | --- | --- |
-| Seeded regressions caught | **12 of 12** |
+| Seeded regressions caught | **11 of 12** on the latest run (12 of 12 on the first run) |
 | Harmless changes wrongly blocked | **0 of 4** |
 | Dataset / repeats | 30 golden cases x 3 repeats |
 | Backend | offline `mock` model |
+
+The one miss on the latest run was `R09_slow_model`, which only shows up as a latency regression. That run's baseline p95 happened to be inflated (769 ms versus 313 ms on the first run), so a 5x slower model stayed under the +100% threshold. Same code, same machine, different result: latency is too noisy to gate on reliably here, and a median or a same-hardware baseline would be a better signal. I have kept the 11/12 rather than re-running until it reads 12/12.
 
 **Read this before quoting the numbers.** These results come from a *simulated* model: the regressions are behaviours I programmed into the mock, so catching them shows the evaluation machinery works end to end. It is not evidence about how real models regress. The real figure comes from `--llm gemini` (not yet run; needs your API key). The sample is also small (16 variants, 30 cases), and the regressions were written by me, so a catch rate of 12/12 should be read as "the gate does what it should on cases it was designed to see".
 

@@ -2,12 +2,12 @@
   "backend": "mock",
   "repeats": 3,
   "dataset": "golden_v1@14c29d96",
-  "baseline_run": "b252dcb84663",
+  "baseline_run": "050d3da108cf",
   "baseline": {
     "success_rate": 1.0,
     "tool_correctness": 1.0,
     "cost_per_task": 0.0005415333333333333,
-    "p95_latency_ms": 312.8155999875162
+    "p95_latency_ms": 768.6157999851275
   },
   "thresholds": {
     "max_success_drop": 0.05,
@@ -18,7 +18,7 @@
     "max_error_rise": 0.05,
     "ignore": []
   },
-  "caught": 12,
+  "caught": 11,
   "regressions": 12,
   "false_blocks": 0,
   "benign": 4,
@@ -31,14 +31,14 @@
       "success_rate": 0.8333333333333334,
       "tool_correctness": 0.8333333333333334,
       "cost_per_task": 0.0003088333333333333,
-      "p95_latency_ms": 229.502300004242,
+      "p95_latency_ms": 954.3464000162203,
       "reasons": [
         "success_rate: 1.00 -> 0.83",
         "tool_correctness: 1.00 -> 0.83",
         "tag:multi_step: 1.00 -> 0.00",
         "tag:refund: 1.00 -> 0.00"
       ],
-      "run_id": "43b1386453a4"
+      "run_id": "e1dac4d8fcb0"
     },
     {
       "name": "R02_verbose_prompt",
@@ -48,11 +48,11 @@
       "success_rate": 1.0,
       "tool_correctness": 1.0,
       "cost_per_task": 0.0013272,
-      "p95_latency_ms": 300.1963999995496,
+      "p95_latency_ms": 963.6834999837447,
       "reasons": [
         "cost_per_task: $0.000542 -> $0.001327 (+145%)"
       ],
-      "run_id": "78c63cd4d505"
+      "run_id": "44f8204d18a4"
     },
     {
       "name": "R03_schema_renamed_order_id",
@@ -62,7 +62,7 @@
       "success_rate": 0.3333333333333333,
       "tool_correctness": 0.3333333333333333,
       "cost_per_task": 0.00045106666666666666,
-      "p95_latency_ms": 217.03749999869615,
+      "p95_latency_ms": 1223.2445999979973,
       "reasons": [
         "success_rate: 1.00 -> 0.33",
         "tool_correctness: 1.00 -> 0.33",
@@ -72,7 +72,7 @@
         "tag:order_status: 1.00 -> 0.00",
         "tag:refund: 1.00 -> 0.00"
       ],
-      "run_id": "35b426bffe8d"
+      "run_id": "b0e1da15a023"
     },
     {
       "name": "R04_schema_dropped_calc_refund",
@@ -82,14 +82,14 @@
       "success_rate": 0.8333333333333334,
       "tool_correctness": 0.8333333333333334,
       "cost_per_task": 0.0004278,
-      "p95_latency_ms": 281.65140000055544,
+      "p95_latency_ms": 767.2537000034936,
       "reasons": [
         "success_rate: 1.00 -> 0.83",
         "tool_correctness: 1.00 -> 0.83",
         "tag:multi_step: 1.00 -> 0.00",
         "tag:refund: 1.00 -> 0.00"
       ],
-      "run_id": "0148d0b84a60"
+      "run_id": "d3b2602b0fa7"
     },
     {
       "name": "R05_cheaper_model",
@@ -99,14 +99,15 @@
       "success_rate": 0.8666666666666667,
       "tool_correctness": 0.7333333333333333,
       "cost_per_task": 0.000134975,
-      "p95_latency_ms": 328.3135000092443,
+      "p95_latency_ms": 1585.2810999786016,
       "reasons": [
         "success_rate: 1.00 -> 0.87",
         "tool_correctness: 1.00 -> 0.73",
         "tag:order_status: 1.00 -> 0.71",
-        "tag:return_policy: 1.00 -> 0.71"
+        "tag:return_policy: 1.00 -> 0.71",
+        "p95_latency: 769ms -> 1585ms (+106%)"
       ],
-      "run_id": "cc0c0777961c"
+      "run_id": "3404bfce9ae4"
     },
     {
       "name": "R06_cheaper_model_terse",
@@ -116,7 +117,7 @@
       "success_rate": 0.7,
       "tool_correctness": 0.6111111111111112,
       "cost_per_task": 7.676111111111111e-05,
-      "p95_latency_ms": 380.49700000556186,
+      "p95_latency_ms": 1275.359399995068,
       "reasons": [
         "success_rate: 1.00 -> 0.70",
         "tool_correctness: 1.00 -> 0.61",
@@ -125,7 +126,7 @@
         "tag:refund: 1.00 -> 0.00",
         "tag:return_policy: 1.00 -> 0.71"
       ],
-      "run_id": "d2ed022eb315"
+      "run_id": "dc37c315cdc2"
     },
     {
       "name": "R07_overeager_tools",
@@ -135,14 +136,14 @@
       "success_rate": 0.9,
       "tool_correctness": 0.9,
       "cost_per_task": 0.0005914,
-      "p95_latency_ms": 316.711799998302,
+      "p95_latency_ms": 1461.5160999819636,
       "reasons": [
         "success_rate: 1.00 -> 0.90",
         "tool_correctness: 1.00 -> 0.90",
         "tag:out_of_scope: 1.00 -> 0.00",
         "tag:refusal: 1.00 -> 0.00"
       ],
-      "run_id": "92b4cf8f63fe"
+      "run_id": "868ab6a00988"
     },
     {
       "name": "R08_no_refusal",
@@ -152,27 +153,25 @@
       "success_rate": 0.9,
       "tool_correctness": 1.0,
       "cost_per_task": 0.00036526666666666664,
-      "p95_latency_ms": 302.5936000049114,
+      "p95_latency_ms": 1179.539799981285,
       "reasons": [
         "success_rate: 1.00 -> 0.90",
         "tag:out_of_scope: 1.00 -> 0.00",
         "tag:refusal: 1.00 -> 0.00"
       ],
-      "run_id": "804e800a4e01"
+      "run_id": "d0b684920f3e"
     },
     {
       "name": "R09_slow_model",
       "group": "regression",
-      "blocked": true,
-      "correct": true,
+      "blocked": false,
+      "correct": false,
       "success_rate": 1.0,
       "tool_correctness": 1.0,
       "cost_per_task": 0.0005415333333333333,
-      "p95_latency_ms": 667.2169000084978,
-      "reasons": [
-        "p95_latency: 313ms -> 667ms (+113%)"
-      ],
-      "run_id": "987d639d6583"
+      "p95_latency_ms": 660.5738000071142,
+      "reasons": [],
+      "run_id": "ab59967ae0f5"
     },
     {
       "name": "R10_schema_renamed_policy_arg",
@@ -182,7 +181,7 @@
       "success_rate": 0.6,
       "tool_correctness": 0.6,
       "cost_per_task": 0.0005192333333333333,
-      "p95_latency_ms": 333.1529999850318,
+      "p95_latency_ms": 472.35970001202077,
       "reasons": [
         "success_rate: 1.00 -> 0.60",
         "tool_correctness: 1.00 -> 0.60",
@@ -191,7 +190,7 @@
         "tag:refund: 1.00 -> 0.00",
         "tag:return_policy: 1.00 -> 0.00"
       ],
-      "run_id": "7dd62bdae1a5"
+      "run_id": "51025dea3a4b"
     },
     {
       "name": "R11_truncated_ids",
@@ -201,7 +200,7 @@
       "success_rate": 0.3333333333333333,
       "tool_correctness": 0.3333333333333333,
       "cost_per_task": 0.00047366666666666667,
-      "p95_latency_ms": 314.84310000087135,
+      "p95_latency_ms": 1090.703099995153,
       "reasons": [
         "success_rate: 1.00 -> 0.33",
         "tool_correctness: 1.00 -> 0.33",
@@ -211,7 +210,7 @@
         "tag:order_status: 1.00 -> 0.00",
         "tag:refund: 1.00 -> 0.00"
       ],
-      "run_id": "506d0f09ee9e"
+      "run_id": "f2f9a1679a91"
     },
     {
       "name": "R12_cheaper_model_verbose",
@@ -221,15 +220,14 @@
       "success_rate": 0.8666666666666667,
       "tool_correctness": 0.7333333333333333,
       "cost_per_task": 0.0003313722222222222,
-      "p95_latency_ms": 774.50920001138,
+      "p95_latency_ms": 674.4879000179935,
       "reasons": [
         "success_rate: 1.00 -> 0.87",
         "tool_correctness: 1.00 -> 0.73",
         "tag:order_status: 1.00 -> 0.71",
-        "tag:return_policy: 1.00 -> 0.71",
-        "p95_latency: 313ms -> 775ms (+148%)"
+        "tag:return_policy: 1.00 -> 0.71"
       ],
-      "run_id": "6fda6bed838f"
+      "run_id": "52133ea1a699"
     },
     {
       "name": "B01_polite_wording",
@@ -239,9 +237,9 @@
       "success_rate": 1.0,
       "tool_correctness": 1.0,
       "cost_per_task": 0.0006373,
-      "p95_latency_ms": 278.8538000022527,
+      "p95_latency_ms": 994.6950000012293,
       "reasons": [],
-      "run_id": "fb47c00fb093"
+      "run_id": "974f2d2977d3"
     },
     {
       "name": "B02_equivalent_cheaper_model",
@@ -251,9 +249,9 @@
       "success_rate": 1.0,
       "tool_correctness": 1.0,
       "cost_per_task": 0.0004332266666666667,
-      "p95_latency_ms": 453.9265999919735,
+      "p95_latency_ms": 953.1971999967936,
       "reasons": [],
-      "run_id": "b7a3e522ff68"
+      "run_id": "5a4c36d18d51"
     },
     {
       "name": "B03_shorter_prompt",
@@ -263,9 +261,9 @@
       "success_rate": 1.0,
       "tool_correctness": 1.0,
       "cost_per_task": 0.0003962666666666667,
-      "p95_latency_ms": 276.10030001960695,
+      "p95_latency_ms": 886.7726000025868,
       "reasons": [],
-      "run_id": "0c33ac9d9cfb"
+      "run_id": "ee26f2826b54"
     },
     {
       "name": "B04_identical_rerun",
@@ -275,9 +273,9 @@
       "success_rate": 1.0,
       "tool_correctness": 1.0,
       "cost_per_task": 0.0005415333333333333,
-      "p95_latency_ms": 243.78889999934472,
+      "p95_latency_ms": 1403.2682999968529,
       "reasons": [],
-      "run_id": "0193cad94098"
+      "run_id": "a0482387f2bb"
     }
   ]
 }

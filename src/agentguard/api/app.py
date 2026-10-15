@@ -17,13 +17,16 @@ the rewritten one; serving both makes the deployment independent of that detail.
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy import select, text
 
 from .. import db
+from ..gate.gate import Thresholds, compare
 from ..metrics import case_results, summarize_run
 
 CACHE_HEADER = "public, s-maxage=60, stale-while-revalidate=300"
@@ -49,6 +52,46 @@ def runs(limit: int = 30) -> list[dict]:
     with db.get_session() as s:
         ids = s.scalars(select(db.Run.id).order_by(db.Run.started_at.desc()).limit(limit)).all()
     return [summarize_run(i) for i in ids]
+
+
+@router.get("/dashboard")
+def dashboard_data(limit: int = 60, baseline: str | None = None) -> dict:
+    """Everything the dashboard needs in one call: runs, a baseline, and gate verdicts.
+
+    Each run is compared with the baseline using the gate's default thresholds, so the
+    page shows exactly what CI would decide. Baseline: the `baseline` query param, else
+    the newest run labelled "experiment:baseline", else none (no verdicts).
+
+    Only complete runs are shown, and for runs labelled "experiment:*" only the newest
+    of each label (re-running the experiment replaces, not piles up).
+    """
+    limit = max(1, min(limit, 100))
+    with db.get_session() as s:
+        ids = s.scalars(select(db.Run.id).where(db.Run.status == "complete").order_by(db.Run.started_at.desc()).limit(limit)).all()
+    summaries, seen = [], set()
+    for i in ids:  # newest first
+        sm = summarize_run(i)
+        label = sm.get("label") or ""
+        if label.startswith("experiment:"):
+            if label in seen:
+                continue
+            seen.add(label)
+        summaries.append(sm)
+    base = next((x for x in summaries if x["id"] == baseline), None) if baseline else next((x for x in summaries if x.get("label") == "experiment:baseline"), None)
+    for sm in summaries:
+        if base is None:
+            sm["verdict"] = None
+        elif sm["id"] == base["id"]:
+            sm["verdict"] = {"passed": True, "baseline": True, "failures": [], "deltas": {}}
+        else:
+            res = compare(sm, base)
+            sm["verdict"] = {"passed": res.passed, "baseline": False, "failures": [{"check": f.check, "detail": f.detail} for f in res.failures], "deltas": res.deltas}
+    t = Thresholds()
+    return {
+        "baseline_id": base["id"] if base else None,
+        "thresholds": {k: v for k, v in asdict(t).items() if k != "ignore"},
+        "runs": summaries,
+    }
 
 
 @router.get("/runs/{run_id}")
@@ -79,6 +122,9 @@ def failures(run_id: str) -> list[dict]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="AgentGuard", version="0.1.0")
+    # WHY open CORS: the API is read-only and public by design, and this lets the static
+    # dashboard be opened from another origin (a dev server, a different host) during development.
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
     app.include_router(router, prefix="/api")
     app.include_router(router, include_in_schema=False)  # same routes without the prefix
 

@@ -157,3 +157,25 @@ def test_api_is_cacheable_but_health_is_not():
 def test_dashboard_served_locally():
     r = TestClient(create_app()).get("/")
     assert r.status_code == 200 and "AgentGuard" in r.text
+
+
+def test_dashboard_endpoint_gives_verdicts_against_experiment_baseline():
+    def labelled(agent, label):
+        dv, cases = load_dataset("datasets/golden_v1.jsonl")
+        cases = [c for c in cases if c.id in IDS]
+        cfg = get_config(agent)
+        return asyncio.run(run_evaluation(lambda: build_agent(cfg), cases, dataset_version=dv, agent_version=cfg.version(), repeats=2, label=label))
+
+    base = labelled("base", "experiment:baseline")
+    bad = labelled("R03_schema_renamed_order_id", "experiment:R03")
+    body = TestClient(create_app()).get("/api/dashboard").json()
+    assert body["baseline_id"] == base
+    by_id = {r["id"]: r for r in body["runs"]}
+    assert by_id[base]["verdict"]["baseline"] is True
+    assert by_id[bad]["verdict"]["passed"] is False and by_id[bad]["verdict"]["failures"]
+
+
+def test_dashboard_endpoint_without_baseline_has_no_verdicts():
+    evaluate()
+    body = TestClient(create_app()).get("/api/dashboard").json()
+    assert body["baseline_id"] is None and body["runs"][0]["verdict"] is None

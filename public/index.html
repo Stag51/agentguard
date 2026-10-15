@@ -3,163 +3,476 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AgentGuard Dashboard</title>
-<meta name="description" content="Evaluation results for LLM agents: quality, cost and latency per run.">
+<title>AgentGuard: Did the change make the agent worse?</title>
+<meta name="description" content="Evaluation dashboard for LLM agents: replay golden test cases, score them, and block regressions in quality, cost and latency.">
 <style>
   :root {
-    --bg: #fafaf8; --surface: #ffffff; --ink: #1b1d1f; --muted: #646a70; --line: #e3e3de;
-    --accent: #1f6feb; --good: #1a7f4b; --bad: #c0392b; --warn: #b7791f;
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+    --blue: #3987e5; --orange: #d95926; --aqua: #199e70; --yellow: #c98500;
+    --magenta: #d55181; --green: #008300; --violet: #9085e9; --red: #e66767;
+    --good: #0ca30c; --bad: #d03b3b;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #121416; --surface: #1b1e21; --ink: #ecedee; --muted: #9aa0a6; --line: #2d3236;
-      --accent: #6aa5ff; --good: #4cc38a; --bad: #ff7b6e; --warn: #e0b04a;
-    }
+  *, *::before, *::after { box-sizing: border-box; border-radius: 0 !important; }
+  html { background: var(--page); }
+  body { margin: 0; color: var(--ink); font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- top bar ---------- */
+  .stripe { display: grid; grid-template-columns: repeat(8, 1fr); height: 10px; }
+  .stripe i:nth-child(1) { background: var(--blue); } .stripe i:nth-child(2) { background: var(--orange); }
+  .stripe i:nth-child(3) { background: var(--aqua); } .stripe i:nth-child(4) { background: var(--yellow); }
+  .stripe i:nth-child(5) { background: var(--magenta); } .stripe i:nth-child(6) { background: var(--green); }
+  .stripe i:nth-child(7) { background: var(--violet); } .stripe i:nth-child(8) { background: var(--red); }
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; gap: 12px; flex-wrap: wrap; }
+  .brand { font-weight: 900; letter-spacing: .22em; font-size: 14px; }
+  .brand b { display: inline-block; width: 14px; height: 14px; background: var(--blue); margin-right: 18px; transform: translateY(2px); box-shadow: 7px 7px 0 var(--magenta); }
+  .badge { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border: 2px solid var(--yellow); color: var(--ink); }
+  .badge.real { border-color: var(--aqua); }
+
+  /* ---------- hero ---------- */
+  .hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; padding: 28px 0 36px; align-items: end; }
+  .kicker { color: var(--ink-2); font-weight: 700; letter-spacing: .18em; font-size: 12px; text-transform: uppercase; margin: 0 0 14px; }
+  h1 { font-size: clamp(34px, 5.6vw, 68px); line-height: 1.14; overflow-wrap: anywhere; letter-spacing: -.02em; font-weight: 900; margin: 0 0 18px; }
+  h1 em { font-style: normal; background: var(--magenta); color: #fff; padding: .02em .16em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .lede { max-width: 56ch; color: var(--ink-2); font-size: 17px; margin: 0; }
+  .hero-num { background: var(--blue); color: #fff; padding: 22px 26px 24px; position: relative; box-shadow: 10px 10px 0 var(--magenta); }
+  .hero-num .big { font-size: clamp(72px, 11vw, 150px); font-weight: 900; line-height: .95; letter-spacing: -.04em; }
+  .hero-num .cap { font-size: 19px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
+  .hero-num .sub { margin-top: 10px; font-size: 15px; opacity: .95; }
+
+  /* ---------- stat tiles ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-bottom: 4px; }
+  .tile { padding: 16px 18px 18px; min-height: 118px; }
+  .tile .label { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .92; }
+  .tile .value { font-size: 40px; font-weight: 900; letter-spacing: -.02em; line-height: 1.1; margin-top: 8px; }
+  .tile .note { font-size: 13px; opacity: .92; margin-top: 4px; }
+
+  /* ---------- panels ---------- */
+  .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; margin-top: 4px; }
+  .panel { background: var(--surface); padding: 18px 20px 22px; border-top: 6px solid var(--blue); min-width: 0; }
+  .s12 { grid-column: span 12; } .s7 { grid-column: span 7; } .s5 { grid-column: span 5; }
+  .panel h2 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -.01em; text-transform: uppercase; }
+  .panel .why { color: var(--ink-2); margin: 4px 0 14px; font-size: 14px; max-width: 70ch; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin: 0 0 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 12px; height: 12px; display: inline-block; }
+
+  /* ---------- bar rows ---------- */
+  .rows { display: grid; gap: 4px; }
+  .row { display: grid; grid-template-columns: 20px minmax(110px, 210px) 1fr 62px; gap: 10px; align-items: center; cursor: pointer; padding: 3px 6px; border-left: 4px solid transparent; }
+  .row:hover { background: var(--surface-2); }
+  .row.sel { background: var(--surface-2); border-left-color: #fff; }
+  .row .g { font-weight: 900; text-align: center; font-size: 15px; }
+  .row .n { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+  .row .t { position: relative; height: 20px; background: var(--grid); }
+  .row .f { position: absolute; inset: 0 auto 0 0; }
+  .row .m { position: absolute; top: -4px; bottom: -4px; width: 2px; background: #fff; }
+  .row .v { font-size: 13.5px; font-weight: 800; text-align: right; }
+
+  /* ---------- heatmap ---------- */
+  .heat { overflow-x: auto; }
+  .heat table { border-collapse: separate; border-spacing: 2px; width: 100%; min-width: 560px; }
+  .heat th { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); font-weight: 700; padding: 2px 2px 6px; vertical-align: bottom; line-height: 1.15; }
+  .heat th.rl { text-align: left; font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--ink); font-weight: 500; white-space: nowrap; padding: 0 8px 0 4px; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+  .heat td { height: 24px; text-align: center; font-size: 11px; font-weight: 800; cursor: pointer; min-width: 42px; }
+  .heat tr.sel th.rl { color: #fff; box-shadow: inset 4px 0 0 #fff; }
+  .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); margin-top: 10px; }
+  .scale div { display: flex; } .scale i { width: 20px; height: 12px; display: block; }
+
+  /* ---------- scatter ---------- */
+  svg.sc { width: 100%; height: auto; display: block; touch-action: manipulation; }
+  svg text { font-family: var(--sans); }
+
+  /* ---------- detail ---------- */
+  .pill { display: inline-block; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; padding: 4px 9px; color: #fff; }
+  .pill.ok { background: var(--good); } .pill.no { background: var(--bad); } .pill.base { background: var(--blue); }
+  .dt { margin: 12px 0 4px; font-weight: 800; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+  .reasons { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .reasons li { background: var(--surface-2); padding: 7px 10px; font-size: 13.5px; border-left: 4px solid var(--bad); }
+  .reasons li b { margin-right: 6px; }
+  .tagbars { display: grid; gap: 4px; }
+  .tb { display: grid; grid-template-columns: 120px 1fr 40px; gap: 8px; align-items: center; font-size: 12.5px; }
+  .tb .t { height: 12px; background: var(--grid); position: relative; } .tb .f { position: absolute; inset: 0 auto 0 0; background: var(--aqua); }
+  .tb .v { text-align: right; font-weight: 800; }
+  .fail { background: var(--surface-2); padding: 7px 10px; margin: 4px 0; font-size: 13px; overflow-wrap: anywhere; border-left: 4px solid var(--yellow); }
+  .fail b { color: var(--ink); } .fail span { color: var(--ink-2); }
+
+  /* ---------- table ---------- */
+  .tw { overflow-x: auto; }
+  table.runs { width: 100%; border-collapse: collapse; min-width: 760px; }
+  table.runs th { text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); padding: 8px 10px; border-bottom: 2px solid var(--axis); }
+  table.runs td { padding: 8px 10px; border-bottom: 1px solid var(--grid); font-size: 13.5px; }
+  table.runs tr.r { cursor: pointer; } table.runs tr.r:hover td, table.runs tr.sel td { background: var(--surface-2); }
+  table.runs tr.sel td:first-child { box-shadow: inset 4px 0 0 #fff; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; } th.num { text-align: right !important; }
+
+  /* ---------- misc ---------- */
+  #tip { position: fixed; z-index: 10; pointer-events: none; background: #000; color: var(--ink); border: 2px solid var(--ink); padding: 8px 10px; font-size: 13px; display: none; max-width: 280px; }
+  #tip .tn { color: var(--ink-2); font-size: 12px; margin-bottom: 4px; }
+  #tip .tl { display: flex; justify-content: space-between; gap: 18px; } #tip .tl b { font-size: 14px; }
+  #msg { padding: 60px 0; color: var(--ink-2); font-size: 16px; }
+  footer { margin: 28px 0 60px; color: var(--muted); font-size: 13px; display: flex; gap: 14px 28px; flex-wrap: wrap; }
+  footer b { color: var(--ink-2); }
+  .note-box { border-left: 6px solid var(--yellow); background: var(--surface); padding: 12px 16px; margin: 0 0 4px; color: var(--ink-2); font-size: 14px; }
+  .note-box b { color: var(--ink); }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: minmax(0, 1fr); } .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .s7, .s5 { grid-column: span 12; }
+    .row { grid-template-columns: 18px minmax(90px, 150px) 1fr 54px; gap: 6px; }
   }
-  :root[data-theme="dark"] {
-    --bg: #121416; --surface: #1b1e21; --ink: #ecedee; --muted: #9aa0a6; --line: #2d3236;
-    --accent: #6aa5ff; --good: #4cc38a; --bad: #ff7b6e; --warn: #e0b04a;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  h2 { font-size: 15px; margin: 28px 0 10px; }
-  p.sub { margin: 0 0 16px; color: var(--muted); }
-  .notice { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--warn); padding: 10px 14px; border-radius: 6px; margin: 12px 0; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
-  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-  .card .value { font-size: 24px; font-weight: 600; margin: 2px 0 6px; }
-  svg { width: 100%; height: 56px; display: block; }
-  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
-  th { color: var(--muted); font-weight: 500; }
-  tr.row { cursor: pointer; }
-  tr.row:hover, tr.row.sel { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
-  .wrap { overflow-x: auto; }
-  .pill { font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
-  .pill.mock { color: var(--warn); border-color: var(--warn); }
-  .bar { display: grid; grid-template-columns: 150px 1fr 48px; gap: 8px; align-items: center; margin: 4px 0; font-size: 13px; }
-  .bar .track { background: var(--line); border-radius: 4px; height: 10px; overflow: hidden; }
-  .bar .fill { height: 100%; background: var(--accent); }
-  .fail { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 6px 0; font-size: 13px; overflow-wrap: anywhere; }
-  .muted { color: var(--muted); }
-  .num { font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
-<main>
-  <h1>AgentGuard</h1>
-  <p class="sub">Does the agent still do its job? Quality, cost and latency for every evaluation run.</p>
-  <div id="status" class="muted">Loading…</div>
+<div class="stripe" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div class="wrap">
+  <nav>
+    <div class="brand"><b></b>AGENTGUARD</div>
+    <div id="backend"></div>
+  </nav>
+
+  <section class="hero">
+    <div>
+      <p class="kicker">Evaluation &amp; observability for LLM agents</p>
+      <h1>Did that change make your AI agent <em>worse?</em></h1>
+      <p class="lede">AgentGuard traces every step an agent takes, replays versioned test cases against each new version, and blocks the pull request when quality, cost or speed regress. Below: 16 deliberate changes, and whether the gate got each call right.</p>
+    </div>
+    <div class="hero-num" id="hero" aria-live="polite"><div class="big">&nbsp;</div></div>
+  </section>
+
+  <div id="msg">Loading results…</div>
   <div id="notice"></div>
-  <section id="cards" class="cards"></section>
-  <h2>Runs <span class="muted">(click a row for detail)</span></h2>
-  <div class="wrap"><table id="runs"></table></div>
-  <section id="detail"></section>
-</main>
+  <section class="tiles" id="tiles"></section>
+
+  <main class="grid" id="main" hidden>
+    <article class="panel s7" style="border-top-color: var(--blue)">
+      <h2>Quality: success rate by agent version</h2>
+      <p class="why">Share of golden test cases passed (a case passes when most of its repeats do). The white line is the baseline; bars the gate blocked are red.</p>
+      <div class="legend" id="lg1"></div>
+      <div class="rows" id="bars-success"></div>
+    </article>
+
+    <article class="panel s5" id="detail" style="border-top-color: var(--magenta)"></article>
+
+    <article class="panel s12" style="border-top-color: var(--aqua)">
+      <h2>Where it breaks: success by task type</h2>
+      <p class="why">Each row is an agent version, each column a kind of question. Dark cells are task types that version fails. A prompt that skips a step breaks only multi-step refunds; a broken tool schema breaks everything that uses the tool.</p>
+      <div class="heat" id="heat"></div>
+      <div class="scale" id="scale"></div>
+    </article>
+
+    <article class="panel s7" style="border-top-color: var(--yellow)">
+      <h2>Cost vs quality</h2>
+      <p class="why">Top-left is the goal: cheap and correct. A cheaper model that drops quality moves down; a verbose prompt moves right without gaining anything.</p>
+      <div class="legend" id="lg2"></div>
+      <svg class="sc" id="scatter" viewBox="0 0 680 420" role="img" aria-label="Scatter plot of cost per task against success rate for each agent version"></svg>
+    </article>
+
+    <article class="panel s5" style="border-top-color: var(--orange)">
+      <h2>Cost per task</h2>
+      <p class="why">Average model spend to answer one case. White line: baseline.</p>
+      <div class="rows" id="bars-cost"></div>
+    </article>
+
+    <article class="panel s12" style="border-top-color: var(--violet)">
+      <h2>Speed: p95 latency</h2>
+      <p class="why">95th-percentile time to answer one case. This metric is the noisiest on a shared laptop, so a gate on it needs a loose threshold and the same hardware for baseline and candidate.</p>
+      <div class="rows" id="bars-lat"></div>
+    </article>
+
+    <article class="panel s12" style="border-top-color: var(--green)">
+      <h2>All runs</h2>
+      <div class="tw"><table class="runs" id="table"></table></div>
+    </article>
+  </main>
+
+  <footer id="foot"></footer>
+</div>
+<div id="tip" role="tooltip"></div>
+
 <script>
 "use strict";
+const C = { blue: "#3987e5", orange: "#d95926", aqua: "#199e70", yellow: "#c98500", magenta: "#d55181", violet: "#9085e9",
+            good: "#0ca30c", bad: "#d03b3b", surface: "#1a1a19", grid: "#2c2c2a", axis: "#383835", muted: "#898781", ink2: "#c3c2b7" };
+// Sequential blue ramp (dark): low = near the surface, high = bright.
+const RAMP = ["#0d366b", "#104281", "#184f95", "#1c5cab", "#256abf", "#2a78d6", "#3987e5", "#5598e7", "#6da7ec", "#86b6ef"];
+const TAGS = { order_status: "Status", order_details: "Details", return_policy: "Policy", refund: "Refund", multi_step: "Multi-step",
+               not_found: "Not found", out_of_scope: "Out of scope", refusal: "Refusal", open_ended: "Open-ended" };
+
 const $ = (id) => document.getElementById(id);
-const fmtPct = (x) => (x * 100).toFixed(0) + "%";
-const fmtCost = (x) => "$" + x.toFixed(6);
-const backend = (r) => (r.agent_version.match(/\/(\w+)\]$/) || [])[1] || "?";
+const el = (tag, props, ...kids) => { const e = document.createElement(tag); Object.assign(e, props || {}); for (const k of kids) e.append(k); return e; };
+const svgEl = (tag, attrs, ...kids) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); for (const k of kids) e.append(k); return e; };
+const pct = (x) => Math.round(x * 100) + "%";
+const usd = (x) => "$" + (x < 0.01 ? x.toFixed(5) : x.toFixed(3));
+const ms = (x) => Math.round(x).toLocaleString() + " ms";
 
-function el(tag, props, ...kids) {
-  const e = document.createElement(tag);
-  Object.assign(e, props || {});
-  for (const k of kids) e.append(k);
-  return e;
+// ---------- colour helpers ----------
+function lum(hex) {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 }
+const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const inkOn = (bg) => (contrast(bg, "#ffffff") >= contrast(bg, "#0b0b0b") ? "#ffffff" : "#0b0b0b"); // text inside a coloured fill
 
-// Minimal sparkline: values left-to-right, no library.
-function spark(values, color) {
-  const ns = "http://www.w3.org/2000/svg", w = 200, h = 56, pad = 4;
-  const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  svg.setAttribute("preserveAspectRatio", "none");
-  if (values.length < 2) return svg;
-  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
-  const pts = values.map((v, i) => [pad + (i * (w - 2 * pad)) / (values.length - 1), h - pad - ((v - lo) / span) * (h - 2 * pad)]);
-  const line = document.createElementNS(ns, "polyline");
-  line.setAttribute("points", pts.map((p) => p.join(",")).join(" "));
-  line.setAttribute("fill", "none");
-  line.setAttribute("stroke", color);
-  line.setAttribute("stroke-width", "2");
-  line.setAttribute("vector-effect", "non-scaling-stroke");
-  svg.append(line);
-  return svg;
-}
-
-async function getJSON(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(url + " -> " + r.status);
-  return r.json();
-}
-
-function card(label, value, series, color) {
-  return el("div", { className: "card" }, el("div", { className: "label", textContent: label }), el("div", { className: "value num", textContent: value }), spark(series, color));
-}
-
-async function showDetail(run) {
-  const box = $("detail");
-  box.replaceChildren(el("h2", { textContent: "Run " + run.id + " · " + run.agent_version }));
-  const tags = Object.entries(run.success_by_tag);
-  for (const [tag, v] of tags) {
-    const fill = el("div", { className: "fill" });
-    fill.style.width = fmtPct(v);
-    box.append(el("div", { className: "bar" }, el("span", { textContent: tag }), el("div", { className: "track" }, fill), el("span", { className: "num", textContent: fmtPct(v) })));
+// ---------- API ----------
+const LOCAL_API = "http://127.0.0.1:8000";
+const forced = (new URLSearchParams(location.search).get("api") || "").replace(/\/$/, "");
+let API = forced || (location.protocol === "file:" ? LOCAL_API : "");
+async function getJSON(path) {
+  const attempt = async (base) => { const r = await fetch(base + path); if (!r.ok) throw new Error(path + " -> HTTP " + r.status); return r.json(); };
+  try { return await attempt(API); }
+  catch (err) {
+    const local = ["localhost", "127.0.0.1", ""].includes(location.hostname);
+    if (API === "" && local && !forced) { const d = await attempt(LOCAL_API); API = LOCAL_API; return d; }
+    throw err;
   }
-  box.append(el("h2", { textContent: "Why cases failed" }));
+}
+
+// ---------- model ----------
+let runs = [], base = null, sel = null;
+const rawLabel = (r) => (r.label || "").replace(/^experiment:/, "");
+const isReg = (r) => /^experiment:R\d/.test(r.label || "");
+const isBen = (r) => /^experiment:B\d/.test(r.label || "");
+const isBase = (r) => !!base && r.id === base.id;
+const blocked = (r) => !!r.verdict && !r.verdict.passed;
+const backendOf = (r) => ((r.agent_version || "").match(/\/(\w+)\]$/) || [])[1] || "?";
+function pretty(r) {
+  const l = rawLabel(r);
+  if (l === "baseline") return "Baseline (reference agent)";
+  const m = l.match(/^([RB]\d+)_(.+)$/);
+  if (m) return m[1] + " · " + m[2].replace(/_/g, " ");
+  return l || r.id;
+}
+const statusColor = (r) => (isBase(r) ? C.blue : blocked(r) ? C.bad : C.good);
+const glyph = (r) => (isBase(r) ? "◆" : blocked(r) ? "✕" : r.verdict ? "✓" : "●");
+
+// ---------- tooltip ----------
+const tip = $("tip");
+function showTip(evt, title, lines) {
+  tip.replaceChildren(el("div", { className: "tn", textContent: title }),
+    ...lines.map(([k, v]) => el("div", { className: "tl" }, el("span", { textContent: k }), el("b", { textContent: v }))));
+  tip.style.display = "block";
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > innerWidth - 8) x = evt.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = evt.clientY - h - pad;
+  tip.style.left = Math.max(8, x) + "px"; tip.style.top = Math.max(8, y) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+const runLines = (r) => [["Success", pct(r.success_rate)], ["Tool correctness", pct(r.tool_correctness)], ["Cost / task", usd(r.cost_per_task)], ["p95 latency", ms(r.p95_latency_ms)],
+  ["Gate", isBase(r) ? "baseline" : r.verdict ? (blocked(r) ? "BLOCKED" : "passed") : "n/a"]];
+function hoverable(node, r) {
+  node.addEventListener("pointermove", (e) => showTip(e, pretty(r), runLines(r)));
+  node.addEventListener("pointerleave", hideTip);
+  node.addEventListener("click", () => select(r.id));
+  node.dataset.id = r.id;
+}
+
+// ---------- horizontal bar chart (HTML/CSS: responsive, text stays crisp) ----------
+function bars(host, list, { value, fmt, max, color, baseVal }) {
+  host.replaceChildren();
+  for (const r of list) {
+    const v = value(r);
+    const fill = el("div", { className: "f" }); fill.style.width = Math.max(0.6, (v / max) * 100) + "%"; fill.style.background = color(r);
+    const track = el("div", { className: "t" }, fill);
+    if (baseVal != null) { const m = el("div", { className: "m" }); m.style.left = `calc(${(baseVal / max) * 100}% - 1px)`; track.append(m); }
+    const g = el("span", { className: "g", textContent: glyph(r) }); g.style.color = statusColor(r);
+    const row = el("div", { className: "row" }, g, el("span", { className: "n", textContent: pretty(r), title: pretty(r) }), track, el("span", { className: "v", textContent: fmt(v) }));
+    hoverable(row, r); host.append(row);
+  }
+}
+const legendItem = (color, text, shape) => { const i = el("i"); i.style.background = color; if (shape === "diamond") i.style.transform = "rotate(45deg) scale(.8)"; if (shape === "dot") i.style.clipPath = "circle(50%)"; return el("span", {}, i, text); };
+
+// ---------- heatmap ----------
+function heat(list) {
+  const tags = Object.keys(TAGS).filter((t) => list.some((r) => t in r.success_by_tag));
+  const t = el("table");
+  const head = el("tr", {}, el("th")); for (const g of tags) head.append(el("th", { textContent: TAGS[g] })); t.append(head);
+  for (const r of list) {
+    const tr = el("tr"); tr.dataset.id = r.id;
+    tr.append(el("th", { className: "rl", textContent: pretty(r), title: pretty(r) }));
+    for (const g of tags) {
+      const v = r.success_by_tag[g]; const td = el("td");
+      if (v == null) { td.textContent = "–"; td.style.color = C.muted; }
+      else { const bg = RAMP[Math.min(9, Math.floor(v * 9.999))]; td.style.background = bg; td.style.color = inkOn(bg); td.textContent = Math.round(v * 100); }
+      td.addEventListener("pointermove", (e) => showTip(e, pretty(r) + " · " + TAGS[g], [["Success", v == null ? "no cases" : pct(v)]]));
+      td.addEventListener("pointerleave", hideTip); td.addEventListener("click", () => select(r.id)); tr.append(td);
+    }
+    t.append(tr);
+  }
+  $("heat").replaceChildren(t);
+  $("scale").replaceChildren("Fails everything", el("div", {}, ...RAMP.map((c) => { const i = el("i"); i.style.background = c; return i; })), "Passes everything");
+}
+
+// ---------- scatter ----------
+function scatter(list) {
+  const svg = $("scatter"); svg.replaceChildren();
+  const W = 680, H = 420, m = { l: 62, r: 22, t: 16, b: 56 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xmax = Math.max(...list.map((r) => r.cost_per_task)) * 1.12 || 1;
+  const ymin = Math.min(0.5, Math.floor(Math.min(...list.map((r) => r.success_rate)) * 10) / 10 - 0.05);
+  const X = (v) => m.l + (v / xmax) * iw, Y = (v) => m.t + (1 - (v - ymin) / (1 - ymin)) * ih;
+  for (let v = Math.ceil(ymin * 4) / 4; v <= 1.0001; v += 0.25) {
+    svg.append(svgEl("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: C.grid, "stroke-width": 1 }));
+    svg.append(svgEl("text", { x: m.l - 10, y: Y(v) + 4, "text-anchor": "end", fill: C.muted, "font-size": 12 }, document.createTextNode(pct(v))));
+  }
+  for (let i = 0; i <= 4; i++) {
+    const v = (xmax * i) / 4;
+    svg.append(svgEl("text", { x: X(v), y: H - m.b + 20, "text-anchor": i === 0 ? "start" : i === 4 ? "end" : "middle", fill: C.muted, "font-size": 12 }, document.createTextNode(usd(v))));
+  }
+  svg.append(svgEl("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: C.axis, "stroke-width": 1 }));
+  svg.append(svgEl("text", { x: m.l + iw / 2, y: H - 8, "text-anchor": "middle", fill: C.ink2, "font-size": 12.5, "font-weight": 700 }, document.createTextNode("COST PER TASK  →  (cheaper is left)")));
+  svg.append(svgEl("text", { x: 14, y: m.t + ih / 2, "text-anchor": "middle", fill: C.ink2, "font-size": 12.5, "font-weight": 700, transform: `rotate(-90 14 ${m.t + ih / 2})` }, document.createTextNode("SUCCESS RATE  →")));
+  const pts = [...list].sort((a, b) => (isBase(a) ? 1 : 0) - (isBase(b) ? 1 : 0));
+  const others = list.filter((r) => !isBase(r));
+  const worst = [...others].sort((a, b) => a.success_rate - b.success_rate)[0];
+  const priciest = [...others].sort((a, b) => b.cost_per_task - a.cost_per_task)[0];
+  const marks = [];
+  for (const r of pts) {
+    const x = X(r.cost_per_task), y = Y(r.success_rate), col = statusColor(r);
+    const g = svgEl("g", { transform: `translate(${x},${y})`, class: "pt", "data-id": r.id });
+    let mark;
+    if (isBase(r)) mark = svgEl("rect", { x: -8, y: -8, width: 16, height: 16, fill: col, stroke: C.surface, "stroke-width": 2, transform: "rotate(45)" }); // diamond = baseline
+    else if (blocked(r)) mark = svgEl("rect", { x: -6, y: -6, width: 12, height: 12, fill: col, stroke: C.surface, "stroke-width": 2 });             // square = blocked
+    else mark = svgEl("circle", { r: 6, fill: col, stroke: C.surface, "stroke-width": 2 });                                                              // circle = passed
+    g.append(mark); svg.append(g); marks.push({ r, x, y, g });
+    if (r === worst || r === priciest || isBase(r)) {
+      const left = x > W * 0.7;
+      svg.append(svgEl("text", { x: x + (left ? -14 : 14), y: y + 4, "text-anchor": left ? "end" : "start", fill: "#f0efec", "font-size": 12, "font-weight": 700 }, document.createTextNode(isBase(r) ? "Baseline" : pretty(r).split(" · ")[0])));
+    }
+  }
+  // nearest-point hover: the pointer only has to be closest, not dead-centre
+  const pick = (e) => {
+    const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse());
+    let best = null, bd = 28 * 28; for (const k of marks) { const d = (k.x - q.x) ** 2 + (k.y - q.y) ** 2; if (d < bd) { bd = d; best = k; } } return best;
+  };
+  svg.onpointermove = (e) => { const k = pick(e); marks.forEach((o) => o.g.setAttribute("opacity", k && o !== k ? 0.45 : 1)); if (k) showTip(e, pretty(k.r), runLines(k.r)); else hideTip(); };
+  svg.onpointerleave = () => { marks.forEach((o) => o.g.setAttribute("opacity", 1)); hideTip(); };
+  svg.onclick = (e) => { const k = pick(e); if (k) select(k.r.id); };
+}
+
+// ---------- detail panel ----------
+async function detail(r) {
+  const box = $("detail"); box.replaceChildren();
+  const verdict = isBase(r) ? el("span", { className: "pill base", textContent: "◆ Baseline" }) : r.verdict ? el("span", { className: "pill " + (blocked(r) ? "no" : "ok"), textContent: blocked(r) ? "✕ Blocked by gate" : "✓ Passed gate" }) : null;
+  box.append(el("h2", { textContent: pretty(r) }), el("div", { style: "margin:10px 0 2px" }, ...(verdict ? [verdict] : [])));
+  if (isReg(r) || isBen(r)) {
+    const should = isReg(r) ? "block" : "pass", right = isReg(r) === blocked(r);
+    box.append(el("p", { className: "why", style: "margin:10px 0 0" }, "This change should ", el("b", { textContent: should }), ". The gate ", el("b", { textContent: blocked(r) ? "blocked" : "passed" }), " it: ",
+      el("b", { style: "color:" + (right ? "#4cc38a" : "#ff7b6e"), textContent: right ? "correct call." : "WRONG call." })));
+  }
+  const fl = r.verdict ? r.verdict.failures : [];
+  if (fl.length) {
+    box.append(el("div", { className: "dt", textContent: "Why the gate blocked it" }));
+    box.append(el("ul", { className: "reasons" }, ...fl.slice(0, 5).map((f) => el("li", {}, el("b", { textContent: f.check }), el("span", { textContent: f.detail })))));
+  } else if (r.verdict && !isBase(r)) box.append(el("p", { className: "why", textContent: "No metric moved past its threshold." }));
+  box.append(el("div", { className: "dt", textContent: "Success by task type" }));
+  const tb = el("div", { className: "tagbars" });
+  for (const [g, v] of Object.entries(r.success_by_tag)) { const f = el("div", { className: "f" }); f.style.width = pct(v); tb.append(el("div", { className: "tb" }, el("span", { textContent: TAGS[g] || g }), el("div", { className: "t" }, f), el("span", { className: "v", textContent: pct(v) }))); }
+  box.append(tb);
+  const fh = el("div"); box.append(el("div", { className: "dt", textContent: "Example failures" }), fh);
   try {
-    const fails = (await getJSON("/api/runs/" + run.id + "/failures")).slice(0, 15);
-    if (!fails.length) box.append(el("div", { className: "muted", textContent: "No failing checks in this run." }));
+    const fails = (await getJSON("/api/runs/" + r.id + "/failures")).filter((f) => f.metric !== "tool_errors").slice(0, 4);
+    if (sel !== r.id) return;
+    if (!fails.length) fh.append(el("p", { className: "why", style: "margin:0", textContent: "No failing checks in this run." }));
     for (const f of fails) {
       const ev = f.evidence || {};
       const why = f.metric === "required_facts" ? "missing: " + (ev.missing || []).join(", ")
-        : f.metric === "tool_calls" ? "expected " + (ev.missing || []).map((m) => m.name).join(", ") + "; called " + (ev.actual || []).map((c) => c.name).join(", ")
-        : JSON.stringify(ev).slice(0, 160);
-      box.append(el("div", { className: "fail" }, el("b", { textContent: f.case_id + " · " + f.metric + " " }), el("span", { className: "muted", textContent: why })));
+        : f.metric === "tool_calls" ? "expected " + ((ev.missing || []).map((x) => x.name).join(", ") || "no tool") + "; called " + ((ev.actual || []).map((c) => c.name).join(", ") || "none")
+        : JSON.stringify(ev).slice(0, 120);
+      fh.append(el("div", { className: "fail" }, el("b", { textContent: f.case_id + " · " + f.metric + " " }), el("span", { textContent: why })));
     }
-  } catch (e) {
-    box.append(el("div", { className: "muted", textContent: "Could not load failures." }));
+  } catch { fh.append(el("p", { className: "why", textContent: "Could not load failures." })); }
+}
+
+function select(id) {
+  sel = id;
+  document.querySelectorAll("[data-id]").forEach((n) => { if (!n.classList.contains("pt")) n.classList.toggle("sel", n.dataset.id === id); });
+  document.querySelectorAll("#scatter .pt").forEach((g) => { const on = g.dataset.id === id; g.firstChild.setAttribute("stroke", on ? "#ffffff" : C.surface); g.firstChild.setAttribute("stroke-width", on ? 3 : 2); });
+  const r = runs.find((x) => x.id === id); if (r) detail(r);
+}
+
+// ---------- table ----------
+function table(list) {
+  const t = $("table"); t.replaceChildren();
+  t.append(el("tr", {}, ...[["Version", ""], ["Gate", ""], ["Success", "num"], ["Tools", "num"], ["Cost / task", "num"], ["p95", "num"], ["Why", ""]].map(([h, c]) => el("th", { className: c, textContent: h }))));
+  for (const r of list) {
+    const gate = isBase(r) ? "◆ baseline" : r.verdict ? (blocked(r) ? "✕ blocked" : "✓ passed") : "–";
+    const why = r.verdict && r.verdict.failures.length ? r.verdict.failures.slice(0, 2).map((f) => f.check).join(", ") : "";
+    const tr = el("tr", { className: "r" }, el("td", { textContent: pretty(r) }),
+      el("td", { textContent: gate, style: "font-weight:800;color:" + (isBase(r) ? "#6da7ec" : blocked(r) ? "#ff7b6e" : "#4cc38a") }),
+      el("td", { className: "num", textContent: pct(r.success_rate) }), el("td", { className: "num", textContent: pct(r.tool_correctness) }),
+      el("td", { className: "num", textContent: usd(r.cost_per_task) }), el("td", { className: "num", textContent: ms(r.p95_latency_ms) }),
+      el("td", { textContent: why, style: "color:var(--ink-2)" }));
+    tr.dataset.id = r.id; tr.addEventListener("click", () => select(r.id)); t.append(tr);
   }
 }
 
-function renderTable(runs) {
-  const t = $("runs");
-  t.replaceChildren(el("tr", {}, ...["Run", "Label", "Model", "Status", "Success", "Tools", "Cost/task", "p95 ms"].map((h) => el("th", { textContent: h }))));
-  for (const r of runs) {
-    const b = backend(r);
-    const tr = el("tr", { className: "row" },
-      el("td", { textContent: r.id }), el("td", { textContent: r.label || "" }),
-      el("td", {}, el("span", { className: "pill " + (b === "mock" ? "mock" : ""), textContent: b })),
-      el("td", { textContent: r.status }),
-      el("td", { className: "num", textContent: fmtPct(r.success_rate) }),
-      el("td", { className: "num", textContent: fmtPct(r.tool_correctness) }),
-      el("td", { className: "num", textContent: fmtCost(r.cost_per_task) }),
-      el("td", { className: "num", textContent: r.p95_latency_ms.toFixed(0) }));
-    tr.onclick = () => { document.querySelectorAll("tr.row").forEach((x) => x.classList.remove("sel")); tr.classList.add("sel"); showDetail(r); };
-    t.append(tr);
-  }
+// ---------- boot ----------
+function tile(label, value, note, color) {
+  const t = el("div", { className: "tile" }, el("div", { className: "label", textContent: label }), el("div", { className: "value", textContent: value }), el("div", { className: "note", textContent: note }));
+  t.style.background = color; t.style.color = inkOn(color); return t;
 }
 
 (async () => {
   try {
-    const runs = await getJSON("/api/runs?limit=30");
-    if (!runs.length) { $("status").textContent = "No runs yet. Run `agentguard run` against this database first."; return; }
-    $("status").textContent = runs.length + " runs · newest first";
-    const chrono = [...runs].reverse(), latest = runs[0];
-    if (runs.some((r) => backend(r) === "mock"))
-      $("notice").append(el("div", { className: "notice", textContent: "Rows marked “mock” come from an offline simulated model. They show the evaluation machinery works, not how a real model behaves." }));
-    $("cards").append(
-      card("Success rate (latest)", fmtPct(latest.success_rate), chrono.map((r) => r.success_rate), "var(--good)"),
-      card("Cost per task (latest)", fmtCost(latest.cost_per_task), chrono.map((r) => r.cost_per_task), "var(--accent)"),
-      card("p95 latency (latest)", latest.p95_latency_ms.toFixed(0) + " ms", chrono.map((r) => r.p95_latency_ms), "var(--warn)"));
-    renderTable(runs);
+    const D = await getJSON("/api/dashboard");
+    runs = D.runs; base = runs.find((r) => r.id === D.baseline_id) || null;
+    // With a baseline, compare like with like: same model backend, and only the experiment variants.
+    if (base) { const exp = runs.filter((r) => /^experiment:/.test(r.label || "") && backendOf(r) === backendOf(base)); if (exp.length > 1) runs = exp; }
+    if (!runs.length) { $("msg").textContent = "No completed runs yet. Run `uv run agentguard experiment` (or `agentguard run`) against this database first."; return; }
+    $("msg").remove();
+
+    const be = backendOf(base || runs[0]);
+    $("backend").append(el("span", { className: "badge" + (be === "mock" ? "" : " real"), textContent: be === "mock" ? "Simulated model (mock) · machinery validation" : "Live model: " + be }));
+    if (be === "mock") $("notice").append(el("div", { className: "note-box" }, el("b", { textContent: "Read this first. " }), "These runs use an offline mock model whose regressions I programmed, so they prove the evaluation pipeline works. They are not evidence about how a real model behaves."));
+
+    const regs = runs.filter(isReg), bens = runs.filter(isBen);
+    const caught = regs.filter(blocked).length, falseB = bens.filter(blocked).length;
+    const hero = $("hero"); hero.replaceChildren();
+    if (base && regs.length) {
+      hero.append(el("div", { className: "big", textContent: caught + "/" + regs.length }), el("div", { className: "cap", textContent: "seeded regressions caught" }),
+        el("div", { className: "sub", textContent: falseB + " of " + bens.length + " harmless changes wrongly blocked" + (caught < regs.length ? " · " + (regs.length - caught) + " missed (see below)" : "") }));
+    } else {
+      const last = runs[0]; hero.append(el("div", { className: "big", textContent: pct(last.success_rate) }), el("div", { className: "cap", textContent: "latest success rate" }), el("div", { className: "sub", textContent: pretty(last) }));
+    }
+    hero.style.color = inkOn(C.blue);
+
+    const ref = base || runs[0];
+    $("tiles").append(
+      tile("Regressions caught", base && regs.length ? caught + " of " + regs.length : "–", "bad changes the gate blocked", C.blue),
+      tile("False blocks", base && bens.length ? falseB + " of " + bens.length : "–", "harmless changes wrongly blocked", C.aqua),
+      tile("Baseline quality", pct(ref.success_rate), ref.n_cases + " cases × " + ref.repeats + " repeats", C.violet),
+      tile("Baseline cost", usd(ref.cost_per_task), "per task · p95 " + ms(ref.p95_latency_ms), C.orange));
+
+    // order: baseline first, then by success desc, then name
+    const order = [...runs].sort((a, b) => (isBase(b) - isBase(a)) || (b.success_rate - a.success_rate) || pretty(a).localeCompare(pretty(b)));
+    $("main").hidden = false;
+
+    $("lg1").append(legendItem(C.blue, "Baseline", "diamond"), legendItem(C.good, "Passed gate"), legendItem(C.bad, "Blocked by gate"), el("span", {}, el("i", { style: "background:#fff;width:3px;height:14px" }), "Baseline level"));
+    bars($("bars-success"), order, { value: (r) => r.success_rate, fmt: pct, max: 1, color: statusColor, baseVal: ref.success_rate });
+
+    const maxCost = Math.max(...runs.map((r) => r.cost_per_task)) * 1.05;
+    bars($("bars-cost"), [...runs].sort((a, b) => b.cost_per_task - a.cost_per_task), { value: (r) => r.cost_per_task, fmt: usd, max: maxCost, color: () => C.orange, baseVal: ref.cost_per_task });
+    const maxLat = Math.max(...runs.map((r) => r.p95_latency_ms)) * 1.05;
+    bars($("bars-lat"), [...runs].sort((a, b) => b.p95_latency_ms - a.p95_latency_ms), { value: (r) => r.p95_latency_ms, fmt: (v) => Math.round(v) + " ms", max: maxLat, color: () => C.violet, baseVal: ref.p95_latency_ms });
+
+    heat(order);
+    $("lg2").append(legendItem(C.blue, "Baseline", "diamond"), legendItem(C.good, "Passed gate", "dot"), legendItem(C.bad, "Blocked by gate"));
+    scatter(runs);
+    table(order);
+
+    const missed = regs.find((r) => !blocked(r)), worst = [...regs].sort((a, b) => a.success_rate - b.success_rate)[0];
+    select((missed || worst || order[0]).id);
+
+    $("foot").append(el("span", {}, el("b", { textContent: "Dataset " }), ref.dataset_version),
+      el("span", {}, el("b", { textContent: "Gate thresholds " }), `success −${D.thresholds.max_success_drop} · cost +${pct(D.thresholds.max_cost_rise)} · p95 +${pct(D.thresholds.max_latency_rise)} · any task type −${D.thresholds.max_tag_drop}`),
+      el("span", { textContent: "Read-only API · synthetic data only" }));
   } catch (e) {
-    $("status").textContent = "Could not load runs. Check /api/health (is DATABASE_URL set?).";
+    $("msg").replaceChildren("Could not load results from " + (API || location.origin) + " (" + e.message + ").", el("br"),
+      "Local: run `uv run agentguard serve` and open http://127.0.0.1:8000. Deployed: open /api/health and check DATABASE_URL. Other API: add ?api=https://host to the URL.");
   }
 })();
 </script>

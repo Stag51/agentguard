@@ -15,3 +15,6 @@ pgdata/
 runs/
 agentguard.db
 agentguard.db-*
+
+# Generated demo video (large binary; share it, do not commit it)
+media/

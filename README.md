@@ -97,5 +97,8 @@ The dashboard and API are read-only and public if you deploy them: they show run
 ## Project layout
 `src/agentguard/` (sdk, collector, datasets, runner, scorers, judge_audit, gate, mining, api, cli) | `src/demo_agent/` (public LangGraph demo agent, synthetic data) | `datasets/` (golden cases, judge traps) | `baselines/main.json` | `docs/`
 
+## Record a demo video
+`scripts/record_demo.py` drives the dashboard like a user (scroll, hover, click) and writes a captioned 1080p MP4 to `media/agentguard-demo.mp4`. Needs Playwright (`pip install playwright`), Google Chrome and ffmpeg, with `agentguard serve` running and results in the database. Re-record after new results so the video matches the dashboard.
+
 ## Data note
 The demo agent uses synthetic data only. No employer or customer data or code is included.

@@ -5,8 +5,5 @@
       "includeFiles": "src/agentguard/**",
       "maxDuration": 30
     }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
-  ]
+  }
 }

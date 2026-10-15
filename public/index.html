@@ -222,7 +222,13 @@ const LOCAL_API = "http://127.0.0.1:8000";
 const forced = (new URLSearchParams(location.search).get("api") || "").replace(/\/$/, "");
 let API = forced || (location.protocol === "file:" ? LOCAL_API : "");
 async function getJSON(path) {
-  const attempt = async (base) => { const r = await fetch(base + path); if (!r.ok) throw new Error(path + " -> HTTP " + r.status); return r.json(); };
+  const attempt = async (base) => {
+    let r = await fetch(base + path);
+    // Some hosts route the API without the /api prefix; the server answers on both, so retry bare.
+    if (r.status === 404 && path.startsWith("/api/")) r = await fetch(base + path.slice(4));
+    if (!r.ok) throw new Error(path + " -> HTTP " + r.status);
+    return r.json();
+  };
   try { return await attempt(API); }
   catch (err) {
     const local = ["localhost", "127.0.0.1", ""].includes(location.hostname);
@@ -472,7 +478,7 @@ function tile(label, value, note, color) {
       el("span", { textContent: "Read-only API · synthetic data only" }));
   } catch (e) {
     $("msg").replaceChildren("Could not load results from " + (API || location.origin) + " (" + e.message + ").", el("br"),
-      "Local: run `uv run agentguard serve` and open http://127.0.0.1:8000. Deployed: open /api/health and check DATABASE_URL. Other API: add ?api=https://host to the URL.");
+      "Local: run `uv run agentguard serve` and open http://127.0.0.1:8000. Deployed: open /api/health (or /health) and check DATABASE_URL. Other API: add ?api=https://host to the URL.");
   }
 })();
 </script>

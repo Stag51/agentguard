@@ -25,7 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy import select, text
 
-from .. import db
+from .. import config, db
 from ..gate.gate import Thresholds, compare
 from ..metrics import case_results, summarize_run
 
@@ -37,6 +37,10 @@ router = APIRouter()
 @router.get("/health")
 def health() -> dict:
     """Liveness plus a database check, so a misconfigured deploy is obvious."""
+    if config.is_serverless() and config.db_url().startswith("sqlite"):
+        # WHY a specific message: on Vercel the usual mistake is a missing DATABASE_URL, which
+        # silently falls back to a local SQLite file that a read-only function cannot open.
+        return {"ok": False, "db": "DATABASE_URL is not set on this deployment"}
     try:
         with db.get_session() as s:
             s.execute(text("SELECT 1"))

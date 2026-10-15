@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy import select, text
@@ -32,6 +32,12 @@ from ..metrics import case_results, summarize_run
 CACHE_HEADER = "public, s-maxage=60, stale-while-revalidate=300"
 
 router = APIRouter()
+
+
+def require_db() -> None:
+    """503 with a clear reason (instead of a bare 500) when the deployment has no database."""
+    if config.is_serverless() and config.db_url().startswith("sqlite"):
+        raise HTTPException(503, "DATABASE_URL is not set on this deployment")
 
 
 @router.get("/health")
@@ -49,7 +55,7 @@ def health() -> dict:
         return {"ok": False, "db": f"{type(exc).__name__}"}
 
 
-@router.get("/runs")
+@router.get("/runs", dependencies=[Depends(require_db)])
 def runs(limit: int = 30) -> list[dict]:
     """Most recent runs with headline metrics, newest first (capped at 100)."""
     limit = max(1, min(limit, 100))
@@ -58,7 +64,7 @@ def runs(limit: int = 30) -> list[dict]:
     return [summarize_run(i) for i in ids]
 
 
-@router.get("/dashboard")
+@router.get("/dashboard", dependencies=[Depends(require_db)])
 def dashboard_data(limit: int = 60, baseline: str | None = None) -> dict:
     """Everything the dashboard needs in one call: runs, a baseline, and gate verdicts.
 
@@ -98,7 +104,7 @@ def dashboard_data(limit: int = 60, baseline: str | None = None) -> dict:
     }
 
 
-@router.get("/runs/{run_id}")
+@router.get("/runs/{run_id}", dependencies=[Depends(require_db)])
 def run(run_id: str) -> dict:
     try:
         return summarize_run(run_id)
@@ -106,7 +112,7 @@ def run(run_id: str) -> dict:
         raise HTTPException(404, f"run '{run_id}' not found")
 
 
-@router.get("/runs/{run_id}/cases")
+@router.get("/runs/{run_id}/cases", dependencies=[Depends(require_db)])
 def cases(run_id: str) -> dict:
     try:
         return case_results(run_id)
@@ -114,7 +120,7 @@ def cases(run_id: str) -> dict:
         raise HTTPException(404, f"run '{run_id}' not found")
 
 
-@router.get("/runs/{run_id}/failures")
+@router.get("/runs/{run_id}/failures", dependencies=[Depends(require_db)])
 def failures(run_id: str) -> list[dict]:
     """Failing scores with their evidence: the 'why' behind each failure."""
     with db.get_session() as s:

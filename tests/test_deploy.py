@@ -90,3 +90,15 @@ def test_health_says_what_is_wrong_when_database_url_is_missing_on_vercel(monkey
     monkeypatch.setenv("VERCEL", "1")
     body = TestClient(create_app()).get("/api/health").json()
     assert body["ok"] is False and "DATABASE_URL" in body["db"]
+
+
+def test_data_endpoints_return_503_with_reason_when_database_url_is_missing_on_vercel(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from agentguard.api.app import create_app
+
+    for k in ("AGENTGUARD_DB", "DATABASE_URL", "POSTGRES_URL"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("VERCEL", "1")
+    r = TestClient(create_app()).get("/api/dashboard")
+    assert r.status_code == 503 and "DATABASE_URL" in r.json()["detail"]
